@@ -1,0 +1,15 @@
+{% if pred %}
+<table>
+    <tr><th>Prediction Type</th><th>Prediction</th></tr>
+
+    <tr><td>Next 4-digit (last 4)</td><td>{{ pred.pred4_last4 }}</td></tr>
+    <tr><td>Next 4-digit (last 3)</td><td>{{ pred.pred4_last3 }}</td></tr>
+    <tr><td>Next 4-digit (last 2)</td><td>{{ pred.pred4_last2 }}</td></tr>
+
+    <tr><td>Next 3-digit (last 4)</td><td>{{ pred.pred3_last4 }}</td></tr>
+    <tr><td>Next 3-digit (last 3)</td><td>{{ pred.pred3_last3 }}</td></tr>
+    <tr><td>Next 3-digit (last 2)</td><td>{{ pred.pred3_last2 }}</td></tr>
+</table>
+{% else %}
+<p>No prediction available.</p>
+{% endif %}

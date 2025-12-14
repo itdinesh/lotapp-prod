@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+
+# Editor history
+.history/
+.vscode/
+
+# Environment
+.env
+.history/
+.vscode/
+.env
+__pycache__/

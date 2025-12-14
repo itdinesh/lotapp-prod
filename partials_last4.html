@@ -1,0 +1,28 @@
+{% if last4 %}
+<table>
+    <tr>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Winner</th>
+        <th>Last 4</th>
+        <th>Last 3</th>
+        <th>AB</th>
+        <th>BC</th>
+        <th>AC</th>
+    </tr>
+    {% for r in last4 %}
+    <tr>
+        <td>{{ r["date_col"] }}</td>
+        <td>{{ r["time_col"] }}</td>
+        <td>{{ r["winner"] }}</td>
+        <td>{{ r["last4"] }}</td>
+        <td>{{ r["last3"] }}</td>
+        <td>{{ r["last2_ab"] }}</td>
+        <td>{{ r["last2_bc"] }}</td>
+        <td>{{ r["last2_ac"] }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No data available.</p>
+{% endif %}

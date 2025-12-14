@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Nagaland Lottery – Pattern Engine</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            color: #222;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: #fff;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: center;
+        }
+
+        th {
+            background: #333;
+            color: white;
+        }
+
+        .section {
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 5px solid #007bff;
+        }
+
+        .block {
+            margin-top: 20px;
+            padding: 10px;
+            background: #fafafa;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .good { color: green; font-weight: bold; }
+        .warn { color: orange; font-weight: bold; }
+        .bad { color: red; font-weight: bold; }
+
+        .prediction-box {
+            background: #eef7ff;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 5px;
+            border-left: 5px solid #007bff;
+        }
+
+        .no-data {
+            color: #777;
+            font-style: italic;
+        }
+
+        /* toggle button */
+        .toggle-btn {
+            background: #007bff;
+            color: white;
+            padding: 5px 12px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .toggle-btn:hover {
+            background: #0056b3;
+        }
+
+        .hidden-row {
+            display: none;
+        }
+
+        .three-col-wrapper {
+    display: flex;
+    width: 100%;
+    gap: 20px;
+}
+
+.three-col {
+    flex: 1;
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 5px solid #007bff;
+    min-height: 200px;
+}
+
+.three-col h2 {
+    font-size: 18px;
+    margin-top: 0;
+    color: #222;
+}
+
+    </style>
+
+<script>
+function toggleDetails(id) {
+    var rows = document.querySelectorAll("." + id);
+    rows.forEach(row => {
+        row.style.display = (row.style.display === "none" || row.style.display === "") 
+            ? "table-row" 
+            : "none";
+    });
+
+    var btn = document.getElementById("btn_" + id);
+    if (btn.innerText.includes("Show")) {
+        btn.innerText = btn.innerText.replace("Show", "Hide");
+    } else {
+        btn.innerText = btn.innerText.replace("Hide", "Show");
+    }
+}
+</script>
+
+</head>
+
+<body>
+
+
+
+<!-- ============================================================
+     INSERT RECORD FORM
+============================================================ -->
+<div class="section">
+    <h2>➕ Insert / Update Lottery</h2>
+
+    <form method="post" action="/save_record">
+        <label>Lottery Name:</label>
+        <input type="text" name="lottery_name" required>
+
+        <label>Date:</label>
+        <input type="text" name="date_col" required placeholder="1 January 2025">
+
+        <label>Time:</label>
+        <select name="time_col">
+            <option>12.30 AM</option>
+            <option>1 PM</option>
+            <option>3 PM</option>
+            <option>5.30 PM</option>
+            <option>6 PM</option>
+            <option>7.30 PM</option>
+            <option>8 PM</option>
+            <option>9 PM</option>
+            <option>10 PM</option>
+        </select>
+
+        <label>Winner:</label>
+        <input type="text" name="winner" required>
+
+        <button type="submit"><b>Save</b></button>
+    </form>
+</div>
+
+
+<!-- ============================================================
+     FILTERS
+============================================================ -->
+<div class="section">
+    <h2>Data Filters</h2>
+
+    <form method="get">
+        Lottery:
+        <select name="lottery_name">
+            <option value="">All</option>
+            {% for n in filters.lottery_names %}
+            <option value="{{n}}" {% if selected_lottery==n %}selected{% endif %}>{{n}}</option>
+            {% endfor %}
+        </select>
+
+        Date:
+        <select name="date_col">
+            <option value="">All</option>
+            {% for d in filters.dates %}
+            <option value="{{d}}" {% if selected_date==d %}selected{% endif %}>{{d}}</option>
+            {% endfor %}
+        </select>
+
+        Time:
+        <!-- <select name="time_col">
+            <option value="">All</option>
+            {% for t in filters.times %}
+            <option value="{{t}}" {% if selected_time==t %}selected{% endif %}>{{t}}</option>
+            {% endfor %}
+        </select> -->
+Time:
+<select name="time_col" multiple size="5">
+    {% for t in filters.times %}
+    <option value="{{ t }}"
+        {% if selected_times and t in selected_times %}selected{% endif %}>
+        {{ t }}
+    </option>
+    {% endfor %}
+</select>
+
+<small>Hold Ctrl (Windows) / Cmd (Mac) to select multiple</small>
+
+        <button>Apply</button>
+    </form>
+</div>
+
+
+<!-- ============================================================
+     LOTTERY TABLE DISPLAY
+============================================================ -->
+<div class="section">
+    <h2>Lottery Table</h2>
+
+    <table>
+        <tr>
+            <th>Date</th><th>Time</th><th>Winner</th>
+            <th>A</th><th>B</th><th>C</th>
+            <th>Last4</th><th>Last3</th>
+            <th>AB</th><th>BC</th><th>AC</th>
+        </tr>
+
+        {% for r in rows %}
+        <tr>
+            <td>{{r.date_col}}</td>
+            <td>{{r.time_col}}</td>
+            <td>{{r.winner}}</td>
+            <td>{{r.a_third}}</td>
+            <td>{{r.b_fourth}}</td>
+            <td>{{r.c_last}}</td>
+            <td>{{r.last4}}</td>
+            <td>{{r.last3}}</td>
+            <td>{{r.last2_ab}}</td>
+            <td>{{r.last2_bc}}</td>
+            <td>{{r.last2_ac}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <p>Page {{page}} of {{total_pages}}</p>
+
+    {% if page > 1 %}
+    <a href="?page={{page-1}}">⬅ Previous</a>
+    {% endif %}
+
+    {% if page < total_pages %}
+    <a href="?page={{page+1}}">Next ➡</a>
+    {% endif %}
+</div>
+
+
+<div class="three-col-wrapper">
+
+<!-- ============================================================
+     EMPIRICAL NEXT PREDICTION ENGINE (NEXT1 / NEXT2 / NEXT3)
+============================================================ -->
+    <div class="three-col">
+    <div class="section">
+        <h2>🔢 Empirical Digit Breakdown</h2>
+
+        {% if pattern_results_find and pattern_results_find.rows %}
+            <table>
+                <tr>
+                    <th>Time</th>
+                    <th>winner</th>                    
+                    <td>aaa</td>
+                    <th>aa</th>
+                    <th>a</th>
+                    <th>b</th>
+                    <th>c</th>
+                    <th>next2</th>
+                    <th>next3</th>
+                </tr>
+
+                {% for p in pattern_results_find.rows %}
+                <tr>
+                    <td>{{ p.time_col }}</td>
+                    <td>{{ p.winner }}</td>
+                    <td>{{ p.aaa }}</td>
+                    <td>{{ p.aa }}</td>
+                    <td>{{ p.a }}</td>
+                    <td>{{ p.b }}</td>
+                    <td>{{ p.c }}</td>
+                    <td>{{ p.next2 }}</td>
+                    <td>{{ p.next3 }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p class="no-data">No empirical digit breakdown available.</p>
+        {% endif %}
+    </div>
+</div>
+
+    
+    <!-- ============================================================
+     PATTERN ENGINE RESULT
+============================================================ -->
+<div class="three-col">
+
+<h2>🧠 Pattern Engine Analysis</h2>
+
+<script>
+// Hide all sections for all keys
+function hideAllPatternTables(key) {
+    document.querySelectorAll(".tbl_" + key).forEach(e => e.style.display = "none");
+}
+
+// Show a specific table (final or step)
+function showPatternTable(id, key) {
+    hideAllPatternTables(key);
+    document.getElementById(id).style.display = "table";
+}
+</script>
+
+{% if pattern_results %}
+    {% for key, block in pattern_results.items() %}
+        <div>
+
+            {% if block.next_series %}
+                <p>
+                    <b>{{ key }} → NEXT:</b>
+
+                    <!-- CLICKABLE FINAL PREDICTION -->
+                    <span class="good" style="cursor:pointer;"
+                          onclick="showPatternTable('tbl_{{ key }}_final', '{{ key }}')">
+                        {{ block.prediction }}
+                    </span>
+
+                    <!-- CLICKABLE NEXT SERIES -->
+                    {% for ns in block.next_series %}
+                        ,
+                        <span class="warn" style="cursor:pointer;"
+                              onclick="showPatternTable('tbl_{{ key }}_step_{{ loop.index }}', '{{ key }}')">
+                            {{ ns }}
+                        </span>
+                    {% endfor %}
+                </p>
+            {% endif %}
+
+
+            {% if block.error %}
+                <p class="no-data">{{ block.error }}</p>
+            {% else %}
+
+            <!-- ------------------------------------- -->
+            <!--  SECTION 1: CURRENT ANALYSIS TABLE    -->
+            <!-- ------------------------------------- -->
+
+            <h3>Current Pattern Analysis ({{ key }})</h3>
+
+            <button class="toggle-btn" id="btn_{{ key }}" onclick="toggleDetails('{{ key }}')">
+                Show Digits / RAW / MOD
+            </button>
+
+            <table class="tbl_{{ key }}" id="tbl_{{ key }}_current">
+                <tr>
+                    <th>Column</th>
+                    <th>After</th>
+
+                    <th class="{{ key }} hidden-row">Digits</th>
+                    <th class="{{ key }} hidden-row">RAW</th>
+                    <th class="{{ key }} hidden-row">MOD</th>
+
+                    <th>Cycle</th>
+                    <th>Mirror</th>
+                    <th>Drift</th>
+                    <th>Freeze</th>
+                    <th>Reset</th>
+                    <th>Custom</th>
+                    <th>Next</th>
+                </tr>
+
+                {% for col in block.analysis %}
+                <tr>
+                    <td>{{ col.column }}</td>
+                    <td>{{ col.patterns.after or "-" }}</td>
+
+                    <td class="{{ key }} hidden-row">{{ col.column_data }}</td>
+                    <td class="{{ key }} hidden-row">{{ col.raw }}</td>
+                    <td class="{{ key }} hidden-row">{{ col.mod }}</td>
+
+                    <td>{{ col.patterns.cycle or "-" }}</td>
+                    <td>{{ col.patterns.mirror or "-" }}</td>
+                    <td>{{ col.patterns.drift or "-" }}</td>
+                    <td>{{ col.patterns.freeze or "-" }}</td>
+                    <td>{{ col.patterns.reset or "-" }}</td>
+                    <td>{{ col.patterns.custom or "-" }}</td>
+
+                    <td><b class="good">{{ col.next }}</b></td>
+                </tr>
+                {% endfor %}
+            </table>
+
+
+            <!-- ---------------------------------------------------- -->
+            <!--   SECTION 2: FINAL PREDICTION RESTRUCTURED VIEW      -->
+            <!-- ---------------------------------------------------- -->
+
+            <h3>📌 Final Prediction ({{ block.prediction }})</h3>
+
+            <table class="tbl_{{ key }}" id="tbl_{{ key }}_final" style="display:none;">
+                <tr>
+                    <th>Column</th>
+                    <th>After</th>
+                    <th>Cycle</th>
+                    <th>Mirror</th>
+                    <th>Drift</th>
+                    <th>Freeze</th>
+                    <th>Reset</th>
+                    <th>Custom</th>
+                    <th>Next</th>
+                </tr>
+
+                {% for col in block.analysis %}
+                <tr>
+                    <td>{{ col.column }}</td>
+                    <td>{{ col.patterns.after or "-" }}</td>
+                    <td>{{ col.patterns.cycle or "-" }}</td>
+                    <td>{{ col.patterns.mirror or "-" }}</td>
+                    <td>{{ col.patterns.drift or "-" }}</td>
+                    <td>{{ col.patterns.freeze or "-" }}</td>
+                    <td>{{ col.patterns.reset or "-" }}</td>
+                    <td>{{ col.patterns.custom or "-" }}</td>
+                    <td><b>{{ col.next }}</b></td>
+                </tr>
+                {% endfor %}
+            </table>
+
+
+
+            <!-- ---------------------------------------------------- -->
+            <!--   SECTION 3: NEXT SERIES (CLICKABLE STEP TABLES)     -->
+            <!-- ---------------------------------------------------- -->
+
+            {% if block.next_series_analysis %}
+            <h3>🔮 Next-Series Analysis</h3>
+
+            {% for step in block.next_series_analysis %}
+            <table class="tbl_{{ key }}" 
+                   id="tbl_{{ key }}_step_{{ step.step }}" 
+                   style="display:none; margin-top:15px;">
+
+                <tr>
+                    <th colspan="9" style="background:#0056b3;color:#fff;">
+                        Step {{ step.step }} → {{ step.value }}
+                    </th>
+                </tr>
+
+                <tr>
+                    <th>Column</th>
+                    <th>After</th>
+                    <th>Cycle</th>
+                    <th>Mirror</th>
+                    <th>Drift</th>
+                    <th>Freeze</th>
+                    <th>Reset</th>
+                    <th>Custom</th>
+                    <th>Next</th>
+                </tr>
+
+                {% for col in step.analysis %}
+                <tr>
+                    <td>{{ col.column }}</td>
+                    <td>{{ col.patterns.after or "-" }}</td>
+                    <td>{{ col.patterns.cycle or "-" }}</td>
+                    <td>{{ col.patterns.mirror or "-" }}</td>
+                    <td>{{ col.patterns.drift or "-" }}</td>
+                    <td>{{ col.patterns.freeze or "-" }}</td>
+                    <td>{{ col.patterns.reset or "-" }}</td>
+                    <td>{{ col.patterns.custom or "-" }}</td>
+                    <td><b>{{ col.next }}</b></td>
+                </tr>
+                {% endfor %}
+
+            </table>
+            {% endfor %}
+            {% endif %}
+
+            {% endif %}
+        </div>
+    {% endfor %}
+{% else %}
+    <p>No pattern results available.</p>
+{% endif %}
+
+</div>
+
+
+    
+<!-- ============================================ -->
+<!--          SEQUENCE MATCH PREDICTIONS          -->
+<!-- ============================================ -->
+    
+  <div class="three-col">
+
+    <h2>Predictions ({{ selected_time or 'All' }})</h2>
+
+    {% for key, cat in predictions.items() %}
+    <div>
+
+        {% set title_shown = false %}
+
+        {% for level, info in cat.items() %}
+
+            {% if info.matches and not title_shown %}
+                <div class="title">{{ key|upper }} Predictions</div>
+                {% set title_shown = true %}
+            {% endif %}
+
+            {% if info.matches %}
+                <div class="row">
+                    <b>{{ level }}</b> →
+                    {% for m in info.matches %}
+                        <span class="pred-val">
+                            {{ m.next.value }} 
+                            <small style="color:#777;">
+                                (ID: {{ m.next.id }})
+                            </small>
+                        </span>{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+        {% endfor %}
+
+    </div>
+    {% endfor %}
+</div>
+
+
+    
+</div>
+
+<!-- ============================================================
+     HISTORICAL SUMMARY
+============================================================ -->
+<!-- <div class="section">
+    <h2>📘 AI Historical Summary</h2>
+
+    {% if ai_summary %}
+        {% for key, data in ai_summary.items() %}
+            <h3>{{ key }}</h3>
+            <p>
+                <b>Total:</b> {{ data.total }} <br>
+                <b>Unique:</b> {{ data.unique }} <br>
+                <b>Most Common:</b> {{ data.most_common|join(", ") }} <br>
+                <b>Range:</b> {{ data.range_low }} – {{ data.range_high }} <br>
+                <b>Trend:</b> {{ data.trend }}
+            </p>
+        {% endfor %}
+    {% else %}
+        <p>No summary available.</p>
+    {% endif %}
+</div> -->
+
+
+<!-- ============================================================
+     FINAL AI PREDICTIONS
+============================================================ -->
+<!-- <div class="section">
+    <h2>🔥 FINAL AI PREDICTION</h2>
+
+    {% if final_prediction.final4 %}
+        <p><b>Top 4-Digit Predictions:</b> {{ final_prediction.final4|join(", ") }}</p>
+    {% endif %}
+
+    {% if final_prediction.top_all %}
+        <p style="font-size:20px">
+            <b>Strongest Today:</b> {{ final_prediction.top_all|join(", ") }}
+        </p>
+    {% endif %}
+</div>
+
+<hr> -->
+
+<!-- ============================================ -->
+<!--            LAST 4 RESULTS TABLES             -->
+<!-- ============================================ -->
+
+<!-- <h2>Last 4 Results (By Time)</h2>
+
+<h3>1 PM</h3>
+<table>
+<tr><th>Date</th><th>Winner</th></tr>
+{% for r in last4_1pm %}
+<tr><td>{{r.date_col}}</td><td>{{r.winner}}</td></tr>
+{% endfor %}
+</table>
+
+<h3>6 PM</h3>
+<table>
+<tr><th>Date</th><th>Winner</th></tr>
+{% for r in last4_6pm %}
+<tr><td>{{r.date_col}}</td><td>{{r.winner}}</td></tr>
+{% endfor %}
+</table>
+
+<h3>8 PM</h3>
+<table>
+<tr><th>Date</th><th>Winner</th></tr>
+{% for r in last4_8pm %}
+<tr><td>{{r.date_col}}</td><td>{{r.winner}}</td></tr>
+{% endfor %}
+</table>
+
+<h3>Combined (1 PM + 6 PM + 8 PM)</h3>
+<table>
+<tr><th>Date</th><th>Winner</th><th>Time</th></tr>
+{% for r in last4_combined %}
+<tr><td>{{r.date_col}}</td><td>{{r.winner}}</td><td>{{r.time_col}}</td></tr>
+{% endfor %}
+</table>
+
+<hr> -->
+
+
+
+<!-- ************************************************************************ -->
+
+
+<h1>🎯 Nagaland Lottery Pattern Engine</h1>
+
+<!-- ============================================================
+     AI RAW OUTPUT
+============================================================ -->
+{% if ai_output %}
+<div class="section">
+    <h2>🤖 AI Output</h2>
+    <pre style="white-space: pre-wrap; background:#fafafa; padding:10px; border:1px solid #ccc;">
+{{ ai_output }}
+    </pre>
+</div>
+{% endif %}
+</body>
+</html>
