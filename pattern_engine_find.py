@@ -39,9 +39,17 @@ def train_rules(cleaned_seq: list):
         full_map_counts[prev][cur] += 1
 
         for pos in range(5):
+            # SAFETY CHECKS
+            if pos >= len(prev) or pos >= len(cur):
+                continue
+
+            if not prev[pos].isdigit() or not cur[pos].isdigit():
+                continue
+
             pd = int(prev[pos])
             cd = int(cur[pos])
             pos_map_counts[pos + 1][pd][cd] += 1
+
 
     # Extract full-map most common transitions
     full_map = {}
